@@ -93,30 +93,9 @@ function showToast(message, type = 'success') {
 // نظام الصلاحيات (RBAC)
 // ============================================================
 const RolePermissions = {
-  Admin: {
-    canAdd: true,
-    canEdit: true,
-    canDelete: true,
-    canExport: true,
-    canManageUsers: true,
-    canViewReports: true
-  },
-  Editor: {
-    canAdd: true,
-    canEdit: true,
-    canDelete: false,
-    canExport: true,
-    canManageUsers: false,
-    canViewReports: true
-  },
-  Viewer: {
-    canAdd: false,
-    canEdit: false,
-    canDelete: false,
-    canExport: true,
-    canManageUsers: false,
-    canViewReports: true
-  }
+  Admin: { canAdd: true, canEdit: true, canDelete: true, canExport: true, canManageUsers: true, canViewReports: true },
+  Editor: { canAdd: true, canEdit: true, canDelete: false, canExport: true, canManageUsers: false, canViewReports: true },
+  Viewer: { canAdd: false, canEdit: false, canDelete: false, canExport: true, canManageUsers: false, canViewReports: true }
 };
 
 function checkPermission(permission) {
@@ -144,7 +123,7 @@ function applyPermissions() {
 }
 
 // ============================================================
-// 🌟 التحقق من الجلسة وتوجيه المستخدم (مع نظام التهيئة الذكية)
+// 🌟 التحقق من الجلسة وتوجيه المستخدم (نظام التهيئة الذكية)
 // ============================================================
 function checkAuth(required = true) {
   return new Promise((resolve, reject) => {
@@ -156,23 +135,18 @@ function checkAuth(required = true) {
           const userDoc = await getDoc(userRef);
 
           if (userDoc.exists()) {
-            // المستخدم مسجل مسبقاً، جلب بياناته
             AppState.currentRole = userDoc.data().role || 'Viewer';
           } else {
-            // المستخدم جديد: فحص هل هو أول مستخدم في النظام
             const usersSnapshot = await getDocs(query(collection(db, 'users'), limit(1)));
-            
             let newRole = 'Viewer';
             let newName = 'مستخدم جديد';
 
             if (usersSnapshot.empty) {
-              // إذا لم يكن هناك أي مستخدم، فإنه يُمنح صلاحيات المدير فوراً
               newRole = 'Admin';
               newName = 'مدير النظام';
               console.log('🌟 تم اكتشاف أول دخول: جاري تهيئة حساب المدير...');
             }
 
-            // إنشاء ملف المستخدم في قاعدة البيانات عبر الواجهة
             await setDoc(userRef, {
               email: user.email,
               role: newRole,
@@ -186,7 +160,7 @@ function checkAuth(required = true) {
           resolve(user);
         } catch (err) {
           console.error('خطأ في التحقق من المستخدم أو إنشاء حسابه:', err);
-          AppState.currentRole = 'Viewer'; // تحوط أمني
+          AppState.currentRole = 'Viewer';
           resolve(user);
         }
       } else {
@@ -215,7 +189,7 @@ async function handleLogout() {
 }
 
 // ============================================================
-// القائمة الجانبية (تم دمجها هنا لضمان عملها بشكل مستقل)
+// القائمة الجانبية (مدمجة هنا)
 // ============================================================
 function initSidebar() {
   const toggle = document.getElementById('menu-toggle');
@@ -258,7 +232,6 @@ async function initApp() {
 
   const user = await checkAuth(true);
   if (user) {
-    // تحديث بيانات المستخدم في واجهة القائمة الجانبية
     if (document.getElementById('user-name')) {
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       const userData = userDoc.exists() ? userDoc.data() : {};
@@ -267,39 +240,53 @@ async function initApp() {
       document.getElementById('user-role').textContent = AppState.currentRole === 'Admin' ? 'مدير النظام' : (AppState.currentRole === 'Editor' ? 'محرر' : 'عارض');
       document.getElementById('user-avatar').textContent = (userData.name || user.email || 'U').charAt(0).toUpperCase();
     }
-
-    // تفعيل إظهار/إخفاء الأزرار بناءً على الرتبة
     applyPermissions();
   }
 }
 
 // ============================================================
-// تهيئة نموذج إضافة/تعديل
+// 🌟 مدير النوافذ الذكي الشامل (الحل الجذري للأزرار الميتة)
 // ============================================================
-function initFormModal(modalId, formId, collectionName, idPrefix) {
-  const modal = document.getElementById(modalId);
-  const form = document.getElementById(formId);
-  const addBtn = document.getElementById(`add-${idPrefix.toLowerCase()}`);
-
-  if (addBtn) {
-    addBtn.addEventListener('click', () => {
-      const idField = form.querySelector('[id*="id"], [name*="id"], [name*="code"]');
-      if (idField && idPrefix) {
-        idField.value = generateAutoId(idPrefix);
-      }
+document.addEventListener('click', (e) => {
+  // 1. فتح النوافذ
+  const targetBtn = e.target.closest('[id^="add-"], .btn-add, [data-action="open-modal"]');
+  if (targetBtn) {
+    e.preventDefault();
+    let prefix = targetBtn.id ? targetBtn.id.replace('add-', '') : '';
+    let modal = document.getElementById(`${prefix}-modal`) || 
+                document.getElementById(`modal-${prefix}`) || 
+                document.getElementById(`${prefix}Modal`) ||
+                document.querySelector('.modal');
+    
+    if (modal) {
       modal.classList.add('active');
-    });
+      const form = modal.querySelector('form');
+      if (form) {
+        const idField = form.querySelector('[id*="id"], [name*="id"], [name*="code"]');
+        if (idField && !idField.value && prefix) {
+          idField.value = generateAutoId(prefix.toUpperCase().slice(0, 3));
+        }
+      }
+    }
   }
 
-  const closeBtn = modal?.querySelector('.modal-close');
-  if (closeBtn) {
-    closeBtn.addEventListener('click', () => {
+  // 2. إغلاق النوافذ
+  if (e.target.classList.contains('modal-close') || e.target.classList.contains('modal') || e.target.dataset.dismiss === 'modal') {
+    const modal = e.target.closest('.modal');
+    if (modal) {
       modal.classList.remove('active');
-      form.reset();
-    });
+      const form = modal.querySelector('form');
+      if (form) form.reset();
+    }
   }
+});
 
-  return { modal, form };
+// دالة احتياطية للحفاظ على التوافقية مع الأكواد القديمة
+function initFormModal(modalId, formId, collectionName, idPrefix) {
+  return { 
+    modal: document.getElementById(modalId), 
+    form: document.getElementById(formId) 
+  };
 }
 
 // ============================================================
@@ -401,7 +388,7 @@ function exportTableToCSV(tableId, filename) {
 }
 
 // ============================================================
-// تصدير الأدوات للاستخدام العام (مهم جداً)
+// تصدير الأدوات للاستخدام العام (Global Object Assignment)
 // ============================================================
 window.generateAutoId = generateAutoId;
 window.checkPermission = checkPermission;
@@ -438,10 +425,10 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/service-worker.js')
       .then(registration => {
-        console.log('✅ تم تفعيل PWA ServiceWorker بنجاح', registration.scope);
+        console.log('✅ تم تفعيل PWA ServiceWorker بنجاح');
       })
       .catch(err => {
-        console.warn('⚠️ فشل تفعيل PWA ServiceWorker (طبيعي إذا كنت تعمل محلياً):', err);
+        console.warn('⚠️ فشل تفعيل PWA ServiceWorker:', err);
       });
   });
 }
