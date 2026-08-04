@@ -123,7 +123,7 @@ function applyPermissions() {
 }
 
 // ============================================================
-// 🌟 التحقق من الجلسة وتوجيه المستخدم (نظام جدار الحماية الأمني)
+// 🌟 التحقق من الجلسة وتوجيه المستخدم (نظام التهيئة الذكية)
 // ============================================================
 function checkAuth(required = true) {
   return new Promise((resolve, reject) => {
@@ -137,7 +137,6 @@ function checkAuth(required = true) {
           if (userDoc.exists()) {
             AppState.currentRole = userDoc.data().role || 'Viewer';
           } else {
-            // التهيئة الذكية: المدير الأول
             const usersSnapshot = await getDocs(query(collection(db, 'users'), limit(1)));
             let newRole = 'Viewer';
             let newName = 'مستخدم جديد';
@@ -158,32 +157,17 @@ function checkAuth(required = true) {
             AppState.currentRole = newRole;
             showToast(`تم التسجيل بنجاح بصلاحية: ${newRole === 'Admin' ? 'مدير عام' : 'مستخدم'}`, 'success');
           }
-          
-          // ✅ إعطاء الضوء الأخضر: إظهار الواجهة الآن لأن المستخدم موثوق
-          document.body.style.visibility = 'visible';
-          document.body.style.opacity = '1';
-          
           resolve(user);
         } catch (err) {
           console.error('خطأ في التحقق من المستخدم أو إنشاء حسابه:', err);
           AppState.currentRole = 'Viewer';
-          
-          // إظهار الواجهة حتى لا تتعلق الشاشة إذا حدث خطأ في الشبكة
-          document.body.style.visibility = 'visible';
-          document.body.style.opacity = '1';
-          
           resolve(user);
         }
       } else {
         AppState.currentUser = null;
         AppState.currentRole = null;
         if (required) {
-          // ❌ طرد المستخدم فوراً لصفحة الدخول (بدون ترك أثر في سجل التصفح)
-          window.location.replace('/login.html');
-        } else {
-          // إذا كانت الصفحة عامة لا تتطلب الدخول
-          document.body.style.visibility = 'visible';
-          document.body.style.opacity = '1';
+          window.location.href = '/login.html';
         }
         resolve(null);
       }
@@ -197,7 +181,7 @@ function checkAuth(required = true) {
 async function handleLogout() {
   try {
     await signOut(auth);
-    window.location.replace('/login.html'); // استخدام replace لمنع الرجوع للواجهة
+    window.location.href = '/login.html';
   } catch (error) {
     console.error('خطأ في تسجيل الخروج:', error);
     showToast('حدث خطأ أثناء تسجيل الخروج', 'error');
@@ -404,7 +388,7 @@ function exportTableToCSV(tableId, filename) {
 }
 
 // ============================================================
-// تصدير الأدوات للاستخدام العام
+// تصدير الأدوات للاستخدام العام (Global Object Assignment)
 // ============================================================
 window.generateAutoId = generateAutoId;
 window.checkPermission = checkPermission;
