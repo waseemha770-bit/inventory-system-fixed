@@ -1,4 +1,4 @@
-const CACHE_NAME = "inventory-system-v1";
+const CACHE_NAME = "inventory-system-v10";
 const FILES_TO_CACHE = [
   "./",
   "./index.html",
