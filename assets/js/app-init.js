@@ -23,9 +23,7 @@ import {
   serverTimestamp,
   Timestamp,
   onSnapshot
-} from '../firebase/firebase-config.js';
-
-import { initSidebar, updateSidebarUser } from './sidebar.js';
+} from '../../firebase/firebase-config.js'; // ✅ تم إصلاح المسار هنا
 
 // ============================================================
 // حالة التطبيق العامة
@@ -128,23 +126,18 @@ function checkPermission(permission) {
 }
 
 function applyPermissions() {
-  // إخفاء أزرار الإضافة
   document.querySelectorAll('[data-permission="add"]').forEach(el => {
     el.style.display = checkPermission('canAdd') ? '' : 'none';
   });
-  // إخفاء أزرار التعديل
   document.querySelectorAll('[data-permission="edit"]').forEach(el => {
     el.style.display = checkPermission('canEdit') ? '' : 'none';
   });
-  // إخفاء أزرار الحذف
   document.querySelectorAll('[data-permission="delete"]').forEach(el => {
     el.style.display = checkPermission('canDelete') ? '' : 'none';
   });
-  // إخفاء أزرار التصدير
   document.querySelectorAll('[data-permission="export"]').forEach(el => {
     el.style.display = checkPermission('canExport') ? '' : 'none';
   });
-  // حماية صفحة إدارة المستخدمين
   document.querySelectorAll('[data-permission="users"]').forEach(el => {
     el.style.display = checkPermission('canManageUsers') ? '' : 'none';
   });
@@ -158,7 +151,6 @@ function checkAuth(required = true) {
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         AppState.currentUser = user;
-        // جلب بيانات المستخدم ودوره من Firestore
         try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           if (userDoc.exists()) {
@@ -198,30 +190,59 @@ async function handleLogout() {
 }
 
 // ============================================================
+// القائمة الجانبية - حالة الطي (Mobile) ✅ تمت إضافتها هنا
+// ============================================================
+function initSidebar() {
+  const toggle = document.getElementById('menu-toggle');
+  const sidebar = document.getElementById('sidebar');
+
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+    });
+  }
+
+  document.addEventListener('click', (e) => {
+    if (sidebar && sidebar.classList.contains('open') &&
+        !sidebar.contains(e.target) && !toggle.contains(e.target)) {
+      sidebar.classList.remove('open');
+    }
+  });
+
+  const currentPath = window.location.pathname.split('/').pop();
+  document.querySelectorAll('.sidebar-nav a').forEach(link => {
+    if (link.getAttribute('href') === `/${currentPath}` ||
+        link.getAttribute('href') === currentPath ||
+        link.getAttribute('href') === `../${currentPath}`) {
+      link.classList.add('active');
+    }
+  });
+}
+
+// ============================================================
 // تهيئة الصفحة الرئيسية
 // ============================================================
 async function initApp() {
   updateConnectionStatus();
 
-  // التحقق من الاتصال بالإنترنت
   if (!navigator.onLine) {
     updateConnectionStatus();
   }
 
-  // تهيئة القائمة الجانبية
   initSidebar();
 
-  // التحقق من الجلسة
   const user = await checkAuth(true);
   if (user) {
-    // عرض معلومات المستخدم في الشريط الجانبي
+    // ✅ تم معالجة بيانات القائمة الجانبية بشكل مباشر دون استدعاء ملف خارجي
     if (document.getElementById('user-name')) {
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       const userData = userDoc.exists() ? userDoc.data() : {};
-      updateSidebarUser({ name: userData.name, email: user.email, role: AppState.currentRole });
+      
+      document.getElementById('user-name').textContent = userData.name || user.email;
+      document.getElementById('user-role').textContent = AppState.currentRole === 'Admin' ? 'مدير النظام' : (AppState.currentRole === 'Editor' ? 'محرر' : 'عارض');
+      document.getElementById('user-avatar').textContent = (userData.name || user.email || 'U').charAt(0).toUpperCase();
     }
 
-    // تطبيق الصلاحيات
     applyPermissions();
   }
 }
@@ -236,7 +257,6 @@ function initFormModal(modalId, formId, collectionName, idPrefix) {
 
   if (addBtn) {
     addBtn.addEventListener('click', () => {
-      // توليد معرف تلقائي
       const idField = form.querySelector('[id*="id"], [name*="id"], [name*="code"]');
       if (idField && idPrefix) {
         idField.value = generateAutoId(idPrefix);
@@ -245,7 +265,6 @@ function initFormModal(modalId, formId, collectionName, idPrefix) {
     });
   }
 
-  // إغلاق النافذة
   const closeBtn = modal?.querySelector('.modal-close');
   if (closeBtn) {
     closeBtn.addEventListener('click', () => {
@@ -284,7 +303,6 @@ async function deleteDocument(collectionName, docId, itemName) {
   try {
     await deleteDoc(doc(db, collectionName, docId));
     showToast('تم الحذف بنجاح', 'success');
-    // تحديث الصفحة
     if (window.location.pathname.includes(collectionName)) {
       location.reload();
     }
@@ -298,7 +316,6 @@ async function deleteDocument(collectionName, docId, itemName) {
 // ماسح الباركود (Barcode Scanner)
 // ============================================================
 function initBarcodeScanner(inputFieldId) {
-  // التحقق من تحميل المكتبة
   if (typeof Html5Qrcode === 'undefined') {
     console.warn('مكتبة Html5Qrcode غير محملة');
     return null;
@@ -312,17 +329,14 @@ function initBarcodeScanner(inputFieldId) {
       { facingMode: "environment" },
       { fps: 10, qrbox: { width: 250, height: 250 } },
       (decodedText) => {
-        // تم مسح الباركود بنجاح
         if (inputField) {
           inputField.value = decodedText;
-          // تشغيل حدث التغيير لتحميل بيانات المنتج
           inputField.dispatchEvent(new Event('change'));
         }
         scanner.stop();
         document.getElementById('barcode-reader-modal')?.classList.remove('active');
       },
       (errorMessage) => {
-        // تجاهل أخطاء المسح المتكرر
       }
     ).catch((err) => {
       console.error('خطأ في تشغيل الماسح:', err);
@@ -334,7 +348,7 @@ function initBarcodeScanner(inputFieldId) {
 }
 
 // ============================================================
-// تصدير التصدير إلى ملف
+// التصدير إلى ملف
 // ============================================================
 function exportTableToCSV(tableId, filename) {
   const table = document.getElementById(tableId);
@@ -377,10 +391,6 @@ window.exportTableToCSV = exportTableToCSV;
 window.showToast = showToast;
 window.RolePermissions = RolePermissions;
 
-// ============================================================
-// تصدير الدوال كوحدة ES Module
-// (مطلوب لأن باقي الصفحات تستخدم: import { initApp, showToast } from './app-init.js')
-// ============================================================
 export {
   generateAutoId,
   checkPermission,
@@ -395,6 +405,21 @@ export {
   showToast,
   RolePermissions
 };
+
+// ============================================================
+// تفعيل تطبيق الويب التقدمي (PWA Service Worker)
+// ============================================================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(registration => {
+        console.log('✅ تم تفعيل PWA ServiceWorker بنجاح', registration.scope);
+      })
+      .catch(err => {
+        console.warn('⚠️ فشل تفعيل PWA ServiceWorker (طبيعي إذا كنت تعمل محلياً):', err);
+      });
+  });
+}
 
 // ============================================================
 // تشغيل التطبيق عند تحميل الصفحة
