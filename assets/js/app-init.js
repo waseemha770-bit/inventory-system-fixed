@@ -23,7 +23,7 @@ import {
   serverTimestamp,
   Timestamp,
   onSnapshot
-} from '../../firebase/firebase-config.js'; // ✅ تم إصلاح المسار هنا
+} from '../../firebase/firebase-config.js'; // مسار الاستدعاء الصحيح
 
 // ============================================================
 // حالة التطبيق العامة
@@ -144,7 +144,7 @@ function applyPermissions() {
 }
 
 // ============================================================
-// التحقق من الجلسة وتوجيه المستخدم
+// 🌟 التحقق من الجلسة وتوجيه المستخدم (مع نظام التهيئة الذكية)
 // ============================================================
 function checkAuth(required = true) {
   return new Promise((resolve, reject) => {
@@ -152,16 +152,41 @@ function checkAuth(required = true) {
       if (user) {
         AppState.currentUser = user;
         try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          const userRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userRef);
+
           if (userDoc.exists()) {
+            // المستخدم مسجل مسبقاً، جلب بياناته
             AppState.currentRole = userDoc.data().role || 'Viewer';
           } else {
-            AppState.currentRole = 'Viewer';
+            // المستخدم جديد: فحص هل هو أول مستخدم في النظام
+            const usersSnapshot = await getDocs(query(collection(db, 'users'), limit(1)));
+            
+            let newRole = 'Viewer';
+            let newName = 'مستخدم جديد';
+
+            if (usersSnapshot.empty) {
+              // إذا لم يكن هناك أي مستخدم، فإنه يُمنح صلاحيات المدير فوراً
+              newRole = 'Admin';
+              newName = 'مدير النظام';
+              console.log('🌟 تم اكتشاف أول دخول: جاري تهيئة حساب المدير...');
+            }
+
+            // إنشاء ملف المستخدم في قاعدة البيانات عبر الواجهة
+            await setDoc(userRef, {
+              email: user.email,
+              role: newRole,
+              name: newName,
+              createdAt: serverTimestamp()
+            });
+
+            AppState.currentRole = newRole;
+            showToast(`تم التسجيل بنجاح بصلاحية: ${newRole === 'Admin' ? 'مدير عام' : 'مستخدم'}`, 'success');
           }
           resolve(user);
         } catch (err) {
-          console.error('خطأ في جلب بيانات المستخدم:', err);
-          AppState.currentRole = 'Viewer';
+          console.error('خطأ في التحقق من المستخدم أو إنشاء حسابه:', err);
+          AppState.currentRole = 'Viewer'; // تحوط أمني
           resolve(user);
         }
       } else {
@@ -190,7 +215,7 @@ async function handleLogout() {
 }
 
 // ============================================================
-// القائمة الجانبية - حالة الطي (Mobile) ✅ تمت إضافتها هنا
+// القائمة الجانبية (تم دمجها هنا لضمان عملها بشكل مستقل)
 // ============================================================
 function initSidebar() {
   const toggle = document.getElementById('menu-toggle');
@@ -233,7 +258,7 @@ async function initApp() {
 
   const user = await checkAuth(true);
   if (user) {
-    // ✅ تم معالجة بيانات القائمة الجانبية بشكل مباشر دون استدعاء ملف خارجي
+    // تحديث بيانات المستخدم في واجهة القائمة الجانبية
     if (document.getElementById('user-name')) {
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       const userData = userDoc.exists() ? userDoc.data() : {};
@@ -243,6 +268,7 @@ async function initApp() {
       document.getElementById('user-avatar').textContent = (userData.name || user.email || 'U').charAt(0).toUpperCase();
     }
 
+    // تفعيل إظهار/إخفاء الأزرار بناءً على الرتبة
     applyPermissions();
   }
 }
@@ -336,8 +362,7 @@ function initBarcodeScanner(inputFieldId) {
         scanner.stop();
         document.getElementById('barcode-reader-modal')?.classList.remove('active');
       },
-      (errorMessage) => {
-      }
+      (errorMessage) => {}
     ).catch((err) => {
       console.error('خطأ في تشغيل الماسح:', err);
       showToast('تعذر تشغيل الكاميرا', 'error');
@@ -348,7 +373,7 @@ function initBarcodeScanner(inputFieldId) {
 }
 
 // ============================================================
-// التصدير إلى ملف
+// التصدير إلى CSV
 // ============================================================
 function exportTableToCSV(tableId, filename) {
   const table = document.getElementById(tableId);
@@ -376,7 +401,7 @@ function exportTableToCSV(tableId, filename) {
 }
 
 // ============================================================
-// تصدير الأدوات للاستخدام العام
+// تصدير الأدوات للاستخدام العام (مهم جداً)
 // ============================================================
 window.generateAutoId = generateAutoId;
 window.checkPermission = checkPermission;
