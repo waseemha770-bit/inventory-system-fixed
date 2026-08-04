@@ -1,3 +1,3 @@
 # inventory-system-fixed
 user=waseemha770@gmail.com
-pas=771954200
+as=771954200
