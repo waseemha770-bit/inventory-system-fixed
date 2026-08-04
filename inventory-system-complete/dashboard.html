@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة التحكم - نظام إدارة المخزون</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <!-- شريط حالة الاتصال -->
+  <div id="connection-status" class="connection-status"></div>
+
+  <!-- القائمة الجانبية -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <h2>نظام إدارة المخزون</h2>
+      <p>Enterprise Inventory System</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="active">
+        <i class="fas fa-chart-line"></i>
+        <span>لوحة التحكم</span>
+      </a>
+      <a href="pages/products.html">
+        <i class="fas fa-boxes-stacked"></i>
+        <span>المخزون الحالي</span>
+      </a>
+      <a href="pages/movements.html">
+        <i class="fas fa-exchange-alt"></i>
+        <span>حركات المخزون</span>
+      </a>
+      <a href="pages/contacts.html">
+        <i class="fas fa-address-book"></i>
+        <span>الموردين والعملاء</span>
+      </a>
+      <a href="pages/returns.html">
+        <i class="fas fa-undo-alt"></i>
+        <span>المرتجعات</span>
+      </a>
+      <a href="pages/accounts.html">
+        <i class="fas fa-file-invoice-dollar"></i>
+        <span>الآجل والديون</span>
+      </a>
+      <a href="pages/reports.html">
+        <i class="fas fa-chart-bar"></i>
+        <span>التقارير</span>
+      </a>
+      <a href="pages/users.html" data-permission="users">
+        <i class="fas fa-users-cog"></i>
+        <span>إدارة المستخدمين</span>
+      </a>
+      <a href="pages/settings.html">
+        <i class="fas fa-cog"></i>
+        <span>الإعدادات</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar" id="user-avatar">A</div>
+        <div class="user-details">
+          <div class="name" id="user-name">جاري التحميل...</div>
+          <div class="role" id="user-role">مستخدم</div>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="handleLogout()">
+        <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+      </button>
+    </div>
+  </aside>
+
+  <!-- المحتوى الرئيسي -->
+  <main class="main-content">
+    <div class="topbar">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <button id="menu-toggle" class="menu-toggle">
+          <i class="fas fa-bars"></i>
+        </button>
+        <h1>لوحة التحكم</h1>
+      </div>
+      <div class="topbar-actions">
+        <span style="font-size: 13px; color: var(--text-light);">
+          <i class="far fa-calendar-alt"></i>
+          <span id="current-date"></span>
+        </span>
+      </div>
+    </div>
+
+    <!-- البطاقات الإحصائية -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon primary">
+          <i class="fas fa-boxes-stacked"></i>
+        </div>
+        <div class="stat-info">
+          <h3 id="stat-products">0</h3>
+          <p>إجمالي المنتجات</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon success">
+          <i class="fas fa-exchange-alt"></i>
+        </div>
+        <div class="stat-info">
+          <h3 id="stat-movements">0</h3>
+          <p>حركات اليوم</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon warning">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="stat-info">
+          <h3 id="stat-low-stock">0</h3>
+          <p>منتجات تحت الحد الأدنى</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon danger">
+          <i class="fas fa-hand-holding-usd"></i>
+        </div>
+        <div class="stat-info">
+          <h3 id="stat-overdue">0</h3>
+          <p>حسابات متأخرة</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon info">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-info">
+          <h3 id="stat-contacts">0</h3>
+          <p>الموردين والعملاء</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- آخر الحركات -->
+    <div class="table-container">
+      <div class="table-header">
+        <h3><i class="fas fa-clock"></i> آخر الحركات</h3>
+        <a href="pages/movements.html" class="btn btn-outline btn-sm">
+          عرض الكل <i class="fas fa-arrow-left"></i>
+        </a>
+      </div>
+      <div style="overflow-x: auto;">
+        <table class="data-table" id="recent-movements-table">
+          <thead>
+            <tr>
+              <th>رقم الحركة</th>
+              <th>التاريخ</th>
+              <th>المنتج</th>
+              <th>النوع</th>
+              <th>الكمية</th>
+              <th>القيمة</th>
+            </tr>
+          </thead>
+          <tbody id="recent-movements-body">
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 30px;">
+                <div class="loading"><div class="spinner"></div></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import {
+      db, collection, getDocs, query, orderBy, limit, where, Timestamp
+    } from './firebase/firebase-config.js';
+
+    // عرض التاريخ الحالي
+    const today = new Date().toLocaleDateString('ar-EG', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+    document.getElementById('current-date').textContent = today;
+
+    // تحميل الإحصائيات
+    async function loadDashboardStats() {
+      try {
+        // إجمالي المنتجات
+        const productsSnap = await getDocs(collection(db, 'products'));
+        document.getElementById('stat-products').textContent = productsSnap.size;
+
+        // المنتجات تحت الحد الأدنى
+        let lowStock = 0;
+        productsSnap.forEach(doc => {
+          const data = doc.data();
+          if (data.currentQuantity <= data.minQuantity) {
+            lowStock++;
+          }
+        });
+        document.getElementById('stat-low-stock').textContent = lowStock;
+
+        // حركات اليوم
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayMovementsSnap = await getDocs(
+          query(collection(db, 'movements'), where('date', '==', todayStr))
+        );
+        document.getElementById('stat-movements').textContent = todayMovementsSnap.size;
+
+        // آخر الحركات (أحدث 10 حركات بغض النظر عن التاريخ)
+        const movementsSnap = await getDocs(
+          query(collection(db, 'movements'), orderBy('date', 'desc'), limit(10))
+        );
+
+        // آخر الحركات في الجدول
+        const tbody = document.getElementById('recent-movements-body');
+        tbody.innerHTML = '';
+        movementsSnap.forEach(docSnap => {
+          const data = docSnap.data();
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${data.movementId || '-'}</td>
+            <td>${data.date || '-'}</td>
+            <td>${data.productName || '-'}</td>
+            <td><span class="badge ${data.type === 'وارد' ? 'badge-success' : 'badge-warning'}">${data.type || '-'}</span></td>
+            <td>${data.quantity || 0}</td>
+            <td>${data.totalValue ? parseFloat(data.totalValue).toFixed(2) : '0.00'} ر.س</td>
+          `;
+          tbody.appendChild(row);
+        });
+
+        if (movementsSnap.size === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-light);">لا توجد حركات حتى الآن</td></tr>';
+        }
+
+        // الموردين والعملاء
+        const contactsSnap = await getDocs(collection(db, 'contacts'));
+        document.getElementById('stat-contacts').textContent = contactsSnap.size;
+
+        // الحسابات المتأخرة
+        const accountsSnap = await getDocs(collection(db, 'accounts'));
+        let overdue = 0;
+        accountsSnap.forEach(docSnap => {
+          const data = docSnap.data();
+          if (data.status === 'متأخر') {
+            overdue++;
+          }
+        });
+        document.getElementById('stat-overdue').textContent = overdue;
+
+      } catch (error) {
+        console.error('خطأ في تحميل لوحة التحكم:', error);
+      }
+    }
+
+    // تهيئة التطبيق
+    import { initApp } from './assets/js/app-init.js';
+    await initApp();
+    await loadDashboardStats();
+  </script>
+</body>
+</html>

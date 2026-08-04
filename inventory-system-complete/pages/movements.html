@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>حركات المخزون - نظام إدارة المخزون</title>
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <div id="connection-status" class="connection-status"></div>
+
+  <!-- القائمة الجانبية -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <h2>نظام إدارة المخزون</h2>
+      <p>Enterprise Inventory System</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="../dashboard.html"><i class="fas fa-chart-line"></i><span>لوحة التحكم</span></a>
+      <a href="products.html"><i class="fas fa-boxes-stacked"></i><span>المخزون الحالي</span></a>
+      <a href="movements.html" class="active"><i class="fas fa-exchange-alt"></i><span>حركات المخزون</span></a>
+      <a href="contacts.html"><i class="fas fa-address-book"></i><span>الموردين والعملاء</span></a>
+      <a href="returns.html"><i class="fas fa-undo-alt"></i><span>المرتجعات</span></a>
+      <a href="accounts.html"><i class="fas fa-file-invoice-dollar"></i><span>الآجل والديون</span></a>
+      <a href="reports.html"><i class="fas fa-chart-bar"></i><span>التقارير</span></a>
+      <a href="users.html" data-permission="users"><i class="fas fa-users-cog"></i><span>إدارة المستخدمين</span></a>
+      <a href="settings.html"><i class="fas fa-cog"></i><span>الإعدادات</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar" id="user-avatar">A</div>
+        <div class="user-details">
+          <div class="name" id="user-name">جاري التحميل...</div>
+          <div class="role" id="user-role">مستخدم</div>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="handleLogout()">
+        <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+      </button>
+    </div>
+  </aside>
+
+  <!-- المحتوى الرئيسي -->
+  <main class="main-content">
+    <div class="topbar">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <button id="menu-toggle" class="menu-toggle"><i class="fas fa-bars"></i></button>
+        <h1><i class="fas fa-exchange-alt"></i> حركات المخزون</h1>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-outline btn-sm" onclick="exportTableToCSV('movements-table', 'حركات_المخزون')">
+          <i class="fas fa-file-export"></i> تصدير
+        </button>
+        <button class="btn btn-primary btn-sm" id="add-movement" data-permission="add">
+          <i class="fas fa-plus"></i> حركة جديدة
+        </button>
+      </div>
+    </div>
+
+    <!-- البحث والفلترة -->
+    <div class="table-container" style="margin-bottom: 20px; padding: 16px 20px;">
+      <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <input type="text" id="search-movement" placeholder="البحث برقم الحركة أو المنتج..."
+               style="height: 40px; padding: 0 12px; border: 1px solid var(--border-color); border-radius: var(--radius); font-family: 'Tajawal'; font-size: 13px; width: 250px;">
+        <select id="filter-type" style="height: 40px; padding: 0 12px; border: 1px solid var(--border-color); border-radius: var(--radius); font-family: 'Tajawal'; font-size: 13px;">
+          <option value="">كل الأنواع</option>
+          <option value="وارد">وارد (شراء)</option>
+          <option value="صادر">صادر (بيع)</option>
+          <option value="تحويل">تحويل</option>
+        </select>
+        <input type="date" id="filter-date" style="height: 40px; padding: 0 12px; border: 1px solid var(--border-color); border-radius: var(--radius); font-family: 'Tajawal'; font-size: 13px;">
+      </div>
+    </div>
+
+    <!-- جدول الحركات -->
+    <div class="table-container">
+      <div style="overflow-x: auto;">
+        <table class="data-table" id="movements-table">
+          <thead>
+            <tr>
+              <th>رقم الحركة</th>
+              <th>التاريخ</th>
+              <th>كود المنتج</th>
+              <th>اسم المنتج</th>
+              <th>نوع الحركة</th>
+              <th>الكمية</th>
+              <th>السعر</th>
+              <th>إجمالي القيمة</th>
+              <th>المورد/العميل</th>
+              <th>رقم الفاتورة</th>
+              <th>ملاحظات</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="movements-body">
+            <tr>
+              <td colspan="12" style="text-align: center; padding: 30px;">
+                <div class="loading"><div class="spinner"></div></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- نافذة إضافة/تعديل حركة -->
+  <div class="modal-overlay" id="movement-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="movement-modal-title">إضافة حركة جديدة</h3>
+        <button class="modal-close" onclick="closeMovementModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="movement-form">
+          <input type="hidden" id="movement-doc-id">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>رقم الحركة *</label>
+              <input type="text" id="movement-id" readonly placeholder="يتم التوليد تلقائياً">
+              <span class="input-hint">يتم إنشاؤه تلقائياً</span>
+            </div>
+            <div class="form-group">
+              <label>التاريخ *</label>
+              <input type="date" id="movement-date" required>
+            </div>
+            <div class="form-group">
+              <label>كود المنتج *</label>
+              <input type="text" id="movement-product-code" required placeholder="أدخل كود المنتج"
+                     onchange="onProductCodeChange()">
+              <span class="input-hint">يمكن استخدام ماسح الباركود</span>
+            </div>
+            <div class="form-group">
+              <label>اسم المنتج *</label>
+              <input type="text" id="movement-product-name" required readonly placeholder="يتم تعبئته تلقائياً">
+            </div>
+            <div class="form-group">
+              <label>نوع الحركة *</label>
+              <select id="movement-type" required>
+                <option value="وارد">وارد (شراء)</option>
+                <option value="صادر">صادر (بيع)</option>
+                <option value="تحويل">تحويل</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>الكمية *</label>
+              <input type="number" id="movement-quantity" required min="1" placeholder="0"
+                     onchange="calculateTotal()">
+            </div>
+            <div class="form-group">
+              <label>السعر *</label>
+              <input type="number" id="movement-price" required min="0" step="0.01" placeholder="0.00"
+                     onchange="calculateTotal()">
+            </div>
+            <div class="form-group">
+              <label>إجمالي القيمة *</label>
+              <input type="number" id="movement-total" readonly placeholder="يُحسب تلقائياً">
+            </div>
+            <div class="form-group">
+              <label>المورد / العميل</label>
+              <input type="text" id="movement-contact" placeholder="اسم المورد أو العميل" list="contacts-list">
+              <datalist id="contacts-list"></datalist>
+            </div>
+            <div class="form-group">
+              <label>رقم الفاتورة</label>
+              <input type="text" id="movement-invoice" placeholder="رقم الفاتورة">
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label>ملاحظات</label>
+              <input type="text" id="movement-notes" placeholder="ملاحظات إضافية">
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-success" onclick="saveMovement()">
+          <i class="fas fa-save"></i> حفظ الحركة
+        </button>
+        <button class="btn btn-outline" onclick="closeMovementModal()">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { db, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp } from '../firebase/firebase-config.js';
+
+    let allMovements = [];
+    let allProducts = [];
+    let editingId = null;
+
+    // تحميل البيانات
+    async function loadData() {
+      try {
+        const [movementsSnap, productsSnap] = await Promise.all([
+          getDocs(query(collection(db, 'movements'), orderBy('date', 'desc'))),
+          getDocs(collection(db, 'products'))
+        ]);
+        allMovements = movementsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        allProducts = productsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderMovements(allMovements);
+        updateContactsList();
+      } catch (error) {
+        console.error('خطأ في تحميل البيانات:', error);
+      }
+    }
+
+    // عرض الحركات
+    function renderMovements(movements) {
+      const tbody = document.getElementById('movements-body');
+      if (movements.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; color: var(--text-light);">لا توجد حركات</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = movements.map(m => {
+        const typeBadge = m.type === 'وارد' ? 'badge-success' : m.type === 'صادر' ? 'badge-warning' : 'badge-info';
+        return `
+          <tr>
+            <td><strong>${m.movementId || '-'}</strong></td>
+            <td>${m.date || '-'}</td>
+            <td>${m.productCode || '-'}</td>
+            <td>${m.productName || '-'}</td>
+            <td><span class="badge ${typeBadge}">${m.type || '-'}</span></td>
+            <td>${m.quantity || 0}</td>
+            <td>${m.price ? parseFloat(m.price).toFixed(2) : '0.00'}</td>
+            <td><strong>${m.totalValue ? parseFloat(m.totalValue).toFixed(2) : '0.00'}</strong></td>
+            <td>${m.contact || '-'}</td>
+            <td>${m.invoiceNo || '-'}</td>
+            <td>${m.notes || '-'}</td>
+            <td>
+              <div class="actions-cell">
+                <button class="btn btn-outline btn-sm" data-permission="edit" onclick="editMovement('${m.id}')">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" data-permission="delete" onclick="deleteMovement('${m.id}')">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // عند تغيير كود المنتج - تعبئة الاسم والسعر تلقائياً
+    window.onProductCodeChange = function() {
+      const code = document.getElementById('movement-product-code').value;
+      const product = allProducts.find(p => p.code === code);
+      if (product) {
+        document.getElementById('movement-product-name').value = product.name || '';
+        document.getElementById('movement-price').value = product.salePrice || product.costPrice || 0;
+        calculateTotal();
+      } else {
+        document.getElementById('movement-product-name').value = '';
+      }
+    };
+
+    // حساب الإجمالي
+    window.calculateTotal = function() {
+      const qty = parseFloat(document.getElementById('movement-quantity').value) || 0;
+      const price = parseFloat(document.getElementById('movement-price').value) || 0;
+      document.getElementById('movement-total').value = (qty * price).toFixed(2);
+    };
+
+    // تحديث قائمة الموردين/العملاء
+    function updateContactsList() {
+      // سيتم تحميلها من contacts collection
+    }
+
+    // حفظ الحركة
+    window.saveMovement = async function() {
+      const movementData = {
+        movementId: document.getElementById('movement-id').value,
+        date: document.getElementById('movement-date').value,
+        productCode: document.getElementById('movement-product-code').value,
+        productName: document.getElementById('movement-product-name').value,
+        type: document.getElementById('movement-type').value,
+        quantity: parseInt(document.getElementById('movement-quantity').value) || 0,
+        price: parseFloat(document.getElementById('movement-price').value) || 0,
+        totalValue: parseFloat(document.getElementById('movement-total').value) || 0,
+        contact: document.getElementById('movement-contact').value.trim(),
+        invoiceNo: document.getElementById('movement-invoice').value.trim(),
+        notes: document.getElementById('movement-notes').value.trim(),
+        updatedAt: serverTimestamp()
+      };
+
+      try {
+        if (editingId) {
+          await updateDoc(doc(db, 'movements', editingId), movementData);
+          showToast('تم تحديث الحركة بنجاح', 'success');
+        } else {
+          await setDoc(doc(db, 'movements', movementData.movementId), { ...movementData, createdAt: serverTimestamp() });
+          showToast('تم إضافة الحركة بنجاح', 'success');
+        }
+
+        // تحديث رصيد المنتج
+        await updateProductStock(movementData);
+
+        closeMovementModal();
+        await loadData();
+      } catch (error) {
+        console.error('خطأ في حفظ الحركة:', error);
+        showToast('حدث خطأ أثناء الحفظ', 'error');
+      }
+    };
+
+    // تحديث رصيد المنتج تلقائياً
+    async function updateProductStock(movement) {
+      const product = allProducts.find(p => p.code === movement.productCode);
+      if (!product) return;
+
+      let newQty = product.currentQuantity || 0;
+      if (movement.type === 'وارد') {
+        newQty += movement.quantity;
+      } else if (movement.type === 'صادر') {
+        newQty -= movement.quantity;
+      }
+
+      await updateDoc(doc(db, 'products', product.id), {
+        currentQuantity: newQty,
+        lastUpdated: movement.date,
+        updatedAt: serverTimestamp()
+      });
+    }
+
+    // تعديل حركة
+    window.editMovement = async function(id) {
+      const movement = allMovements.find(m => m.id === id);
+      if (!movement) return;
+
+      editingId = id;
+      document.getElementById('movement-modal-title').textContent = 'تعديل الحركة';
+      document.getElementById('movement-doc-id').value = id;
+      document.getElementById('movement-id').value = movement.movementId || '';
+      document.getElementById('movement-date').value = movement.date || '';
+      document.getElementById('movement-product-code').value = movement.productCode || '';
+      document.getElementById('movement-product-name').value = movement.productName || '';
+      document.getElementById('movement-type').value = movement.type || 'وارد';
+      document.getElementById('movement-quantity').value = movement.quantity || 0;
+      document.getElementById('movement-price').value = movement.price || 0;
+      document.getElementById('movement-total').value = movement.totalValue || 0;
+      document.getElementById('movement-contact').value = movement.contact || '';
+      document.getElementById('movement-invoice').value = movement.invoiceNo || '';
+      document.getElementById('movement-notes').value = movement.notes || '';
+      document.getElementById('movement-modal').classList.add('active');
+    };
+
+    // حذف حركة
+    window.deleteMovement = async function(id) {
+      if (!confirm('هل أنت متأكد من حذف هذه الحركة؟')) return;
+      try {
+        await deleteDoc(doc(db, 'movements', id));
+        showToast('تم حذف الحركة بنجاح', 'success');
+        await loadData();
+      } catch (error) {
+        console.error('خطأ في الحذف:', error);
+        showToast('حدث خطأ أثناء الحذف', 'error');
+      }
+    };
+
+    // إغلاق النافذة
+    window.closeMovementModal = function() {
+      document.getElementById('movement-modal').classList.remove('active');
+      document.getElementById('movement-form').reset();
+      editingId = null;
+      document.getElementById('movement-modal-title').textContent = 'إضافة حركة جديدة';
+    };
+
+    // البحث والفلترة
+    function filterMovements() {
+      const search = document.getElementById('search-movement').value.toLowerCase();
+      const type = document.getElementById('filter-type').value;
+      const date = document.getElementById('filter-date').value;
+
+      let filtered = allMovements.filter(m => {
+        const matchSearch = !search ||
+          (m.movementId || '').toLowerCase().includes(search) ||
+          (m.productName || '').toLowerCase().includes(search) ||
+          (m.productCode || '').toLowerCase().includes(search);
+        const matchType = !type || m.type === type;
+        const matchDate = !date || m.date === date;
+        return matchSearch && matchType && matchDate;
+      });
+
+      renderMovements(filtered);
+    }
+
+    document.getElementById('search-movement')?.addEventListener('input', filterMovements);
+    document.getElementById('filter-type')?.addEventListener('change', filterMovements);
+    document.getElementById('filter-date')?.addEventListener('change', filterMovements);
+
+    // تهيئة التطبيق
+    import { initApp, showToast } from '../assets/js/app-init.js';
+    await initApp();
+    await loadData();
+
+    // زر إضافة حركة
+    document.getElementById('add-movement')?.addEventListener('click', () => {
+      const code = 'MOV-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+      document.getElementById('movement-id').value = code;
+      document.getElementById('movement-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('movement-modal').classList.add('active');
+    });
+  </script>
+</body>
+</html>

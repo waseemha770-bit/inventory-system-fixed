@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إدارة المستخدمين - نظام إدارة المخزون</title>
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <div id="connection-status" class="connection-status"></div>
+
+  <!-- القائمة الجانبية -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <h2>نظام إدارة المخزون</h2>
+      <p>Enterprise Inventory System</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="../dashboard.html"><i class="fas fa-chart-line"></i><span>لوحة التحكم</span></a>
+      <a href="products.html"><i class="fas fa-boxes-stacked"></i><span>المخزون الحالي</span></a>
+      <a href="movements.html"><i class="fas fa-exchange-alt"></i><span>حركات المخزون</span></a>
+      <a href="contacts.html"><i class="fas fa-address-book"></i><span>الموردين والعملاء</span></a>
+      <a href="returns.html"><i class="fas fa-undo-alt"></i><span>المرتجعات</span></a>
+      <a href="accounts.html"><i class="fas fa-file-invoice-dollar"></i><span>الآجل والديون</span></a>
+      <a href="reports.html"><i class="fas fa-chart-bar"></i><span>التقارير</span></a>
+      <a href="users.html" class="active"><i class="fas fa-users-cog"></i><span>إدارة المستخدمين</span></a>
+      <a href="settings.html"><i class="fas fa-cog"></i><span>الإعدادات</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar" id="user-avatar">A</div>
+        <div class="user-details">
+          <div class="name" id="user-name">جاري التحميل...</div>
+          <div class="role" id="user-role">مستخدم</div>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="handleLogout()">
+        <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+      </button>
+    </div>
+  </aside>
+
+  <!-- المحتوى الرئيسي -->
+  <main class="main-content">
+    <div class="topbar">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <button id="menu-toggle" class="menu-toggle"><i class="fas fa-bars"></i></button>
+        <h1><i class="fas fa-users-cog"></i> إدارة المستخدمين والصلاحيات</h1>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary btn-sm" id="add-user" data-permission="users">
+          <i class="fas fa-plus"></i> إضافة مستخدم
+        </button>
+      </div>
+    </div>
+
+    <!-- جدول المستخدمين -->
+    <div class="table-container">
+      <div style="overflow-x: auto;">
+        <table class="data-table" id="users-table">
+          <thead>
+            <tr>
+              <th>الاسم</th>
+              <th>البريد الإلكتروني</th>
+              <th>الدور</th>
+              <th>تاريخ الإنشاء</th>
+              <th>الحالة</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="users-body">
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 30px;">
+                <div class="loading"><div class="spinner"></div></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- صلاحيات الأدوار -->
+    <div class="table-container" style="margin-top: 20px; padding: 20px;">
+      <h3 style="margin-bottom: 16px;"><i class="fas fa-shield-alt"></i> جدول الصلاحيات حسب الدور</h3>
+      <div style="overflow-x: auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>الصلاحية</th>
+              <th>Admin (مدير)</th>
+              <th>Editor (محرر)</th>
+              <th>Viewer (عارض)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><i class="fas fa-plus-circle"></i> إضافة سجلات</td>
+              <td><span class="badge badge-success">مسموح</span></td>
+              <td><span class="badge badge-success">مسموح</span></td>
+              <td><span class="badge badge-danger">محظور</span></td>
+            </tr>
+            <tr>
+              <td><i class="fas fa-edit"></i> تعديل سجلات</td>
+              <td><span class="badge badge-success">مسموح</span></td>
+              <td><span class="badge badge-success">مسموح</span></td>
+              <td><span class="badge badge-danger">محظور</span></td>
+            </tr>
+            <tr>
+              <td><i class="fas fa-trash"></i> حذف سجلات</td>
+              <td><span class="badge badge-success">مسموح</span></td>
+              <td><span class="badge badge-danger">محظور</span></td>
+              <td><span class="badge badge-danger">محظور</span></td>
+            </tr>
+            <tr>
+              <td><i class="fas fa-file-export"></i> تصدير التقارير</td>
+              <td><span class="badge badge-success">مسموح</span></td>
+              <td><span class="badge badge-success">مسموح</span></td>
+              <td><span class="badge badge-success">مسموح</span></td>
+            </tr>
+            <tr>
+              <td><i class="fas fa-users-cog"></i> إدارة المستخدمين</td>
+              <td><span class="badge badge-success">مسموح</span></td>
+              <td><span class="badge badge-danger">محظور</span></td>
+              <td><span class="badge badge-danger">محظور</span></td>
+            </tr>
+            <tr>
+              <td><i class="fas fa-chart-bar"></i> عرض التقارير</td>
+              <td><span class="badge badge-success">مسموح</span></td>
+              <td><span class="badge badge-success">مسموح</span></td>
+              <td><span class="badge badge-success">مسموح</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- نافذة إضافة مستخدم -->
+  <div class="modal-overlay" id="user-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="user-modal-title">إضافة مستخدم جديد</h3>
+        <button class="modal-close" onclick="closeUserModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="user-form">
+          <input type="hidden" id="user-doc-id">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>الاسم الكامل *</label>
+              <input type="text" id="user-name-input" required placeholder="الاسم الكامل">
+            </div>
+            <div class="form-group">
+              <label>البريد الإلكتروني *</label>
+              <input type="email" id="user-email" required placeholder="example@company.com">
+            </div>
+            <div class="form-group">
+              <label>كلمة المرور *</label>
+              <input type="password" id="user-password" required placeholder="6 أحرف على الأقل" minlength="6">
+            </div>
+            <div class="form-group">
+              <label>الدور *</label>
+              <select id="user-role-select" required>
+                <option value="Admin">Admin (مدير النظام)</option>
+                <option value="Editor">Editor (محرر)</option>
+                <option value="Viewer">Viewer (عارض فقط)</option>
+              </select>
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label>ملاحظات</label>
+              <textarea id="user-notes" rows="2" placeholder="ملاحظات إضافية"></textarea>
+            </div>
+          </div>
+          <div style="margin-top: 12px; padding: 12px; background: #fef3c7; border-radius: var(--radius); font-size: 13px; color: #92400e;">
+            <i class="fas fa-info-circle"></i>
+            <strong>ملاحظة:</strong> سيتم إنشاء حساب جديد في Firebase Auth مع الصلاحيات المحددة.
+            كلمة المرور يجب أن تكون 6 أحرف على الأقل.
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="saveUser()">
+          <i class="fas fa-save"></i> إنشاء المستخدم
+        </button>
+        <button class="btn btn-outline" onclick="closeUserModal()">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { db, auth, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp } from '../firebase/firebase-config.js';
+    import { createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+
+    let allUsers = [];
+    let editingId = null;
+
+    // تحميل المستخدمين
+    async function loadUsers() {
+      try {
+        const snapshot = await getDocs(query(collection(db, 'users'), orderBy('createdAt', 'desc')));
+        allUsers = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderUsers(allUsers);
+      } catch (error) {
+        console.error('خطأ في تحميل المستخدمين:', error);
+      }
+    }
+
+    // عرض المستخدمين
+    function renderUsers(users) {
+      const tbody = document.getElementById('users-body');
+      if (users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-light);">لا يوجد مستخدمون</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = users.map(u => {
+        const roleBadge = u.role === 'Admin' ? 'badge-danger' : u.role === 'Editor' ? 'badge-info' : 'badge-success';
+        const roleText = u.role === 'Admin' ? 'مدير النظام' : u.role === 'Editor' ? 'محرر' : 'عارض';
+        return `
+          <tr>
+            <td><strong>${u.name || '-'}</strong></td>
+            <td>${u.email || '-'}</td>
+            <td><span class="badge ${roleBadge}">${roleText}</span></td>
+            <td>${u.createdAt ? new Date(u.createdAt.seconds * 1000).toLocaleDateString('ar-EG') : '-'}</td>
+            <td><span class="badge badge-success">نشط</span></td>
+            <td>
+              <div class="actions-cell">
+                <button class="btn btn-outline btn-sm" data-permission="edit" onclick="editUser('${u.id}')">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" data-permission="delete" onclick="deleteUser('${u.id}', '${u.name}')">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // حفظ مستخدم
+    window.saveUser = async function() {
+      const name = document.getElementById('user-name-input').value.trim();
+      const email = document.getElementById('user-email').value.trim();
+      const password = document.getElementById('user-password').value;
+      const role = document.getElementById('user-role-select').value;
+
+      if (!name || !email || !password) {
+        showToast('يرجى ملء جميع الحقول المطلوبة', 'warning');
+        return;
+      }
+
+      try {
+        if (editingId) {
+          // تحديث بيانات المستخدم فقط (لا يمكن تغيير البريد عبر Auth مباشرة)
+          await updateDoc(doc(db, 'users', editingId), {
+            name: name,
+            role: role,
+            updatedAt: serverTimestamp()
+          });
+          showToast('تم تحديث بيانات المستخدم بنجاح', 'success');
+        } else {
+          // إنشاء حساب جديد في Firebase Auth
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const uid = userCredential.user.uid;
+
+          // حفظ بيانات المستخدم في Firestore
+          await setDoc(doc(db, 'users', uid), {
+            name: name,
+            email: email,
+            role: role,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+
+          showToast('تم إنشاء المستخدم بنجاح', 'success');
+        }
+
+        closeUserModal();
+        await loadUsers();
+      } catch (error) {
+        console.error('خطأ في حفظ المستخدم:', error);
+        const errorMessages = {
+          'auth/email-already-in-use': 'هذا البريد الإلكتروني مستخدم بالفعل',
+          'auth/invalid-email': 'البريد الإلكتروني غير صالح',
+          'auth/weak-password': 'كلمة المرور ضعيفة (يجب أن تكون 6 أحرف على الأقل)',
+          'auth/operation-not-allowed': 'لم يتم تفعيل تسجيل البريد الإلكتروني في Firebase'
+        };
+        showToast(errorMessages[error.code] || 'حدث خطأ: ' + error.message, 'error');
+      }
+    };
+
+    // تعديل مستخدم
+    window.editUser = async function(id) {
+      const user = allUsers.find(u => u.id === id);
+      if (!user) return;
+
+      editingId = id;
+      document.getElementById('user-modal-title').textContent = 'تعديل المستخدم';
+      document.getElementById('user-doc-id').value = id;
+      document.getElementById('user-name-input').value = user.name || '';
+      document.getElementById('user-email').value = user.email || '';
+      document.getElementById('user-email').readOnly = true; // لا يمكن تغيير البريد
+      document.getElementById('user-password').value = '';
+      document.getElementById('user-password').removeAttribute('required');
+      document.getElementById('user-role-select').value = user.role || 'Viewer';
+      document.getElementById('user-notes').value = user.notes || '';
+      document.getElementById('user-modal').classList.add('active');
+    };
+
+    // حذف مستخدم
+    window.deleteUser = async function(id, name) {
+      if (!confirm(`هل أنت متأكد من حذف المستخدم "${name}"؟`)) return;
+      try {
+        await deleteDoc(doc(db, 'users', id));
+        showToast('تم حذف المستخدم بنجاح', 'success');
+        await loadUsers();
+      } catch (error) {
+        console.error('خطأ في الحذف:', error);
+        showToast('حدث خطأ أثناء الحذف', 'error');
+      }
+    };
+
+    // إغلاق النافذة
+    window.closeUserModal = function() {
+      document.getElementById('user-modal').classList.remove('active');
+      document.getElementById('user-form').reset();
+      document.getElementById('user-email').readOnly = false;
+      document.getElementById('user-password').setAttribute('required', '');
+      editingId = null;
+      document.getElementById('user-modal-title').textContent = 'إضافة مستخدم جديد';
+    };
+
+    // تهيئة التطبيق
+    import { initApp, showToast } from '../assets/js/app-init.js';
+    await initApp();
+    await loadUsers();
+
+    // زر إضافة مستخدم
+    document.getElementById('add-user')?.addEventListener('click', () => {
+      document.getElementById('user-modal').classList.add('active');
+    });
+  </script>
+</body>
+</html>

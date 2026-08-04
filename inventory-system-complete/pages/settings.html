@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>الإعدادات - نظام إدارة المخزون</title>
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <div id="connection-status" class="connection-status"></div>
+
+  <!-- القائمة الجانبية -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <h2>نظام إدارة المخزون</h2>
+      <p>Enterprise Inventory System</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="../dashboard.html"><i class="fas fa-chart-line"></i><span>لوحة التحكم</span></a>
+      <a href="products.html"><i class="fas fa-boxes-stacked"></i><span>المخزون الحالي</span></a>
+      <a href="movements.html"><i class="fas fa-exchange-alt"></i><span>حركات المخزون</span></a>
+      <a href="contacts.html"><i class="fas fa-address-book"></i><span>الموردين والعملاء</span></a>
+      <a href="returns.html"><i class="fas fa-undo-alt"></i><span>المرتجعات</span></a>
+      <a href="accounts.html"><i class="fas fa-file-invoice-dollar"></i><span>الآجل والديون</span></a>
+      <a href="reports.html"><i class="fas fa-chart-bar"></i><span>التقارير</span></a>
+      <a href="users.html" data-permission="users"><i class="fas fa-users-cog"></i><span>إدارة المستخدمين</span></a>
+      <a href="settings.html" class="active"><i class="fas fa-cog"></i><span>الإعدادات</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar" id="user-avatar">A</div>
+        <div class="user-details">
+          <div class="name" id="user-name">جاري التحميل...</div>
+          <div class="role" id="user-role">مستخدم</div>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="handleLogout()">
+        <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+      </button>
+    </div>
+  </aside>
+
+  <!-- المحتوى الرئيسي -->
+  <main class="main-content">
+    <div class="topbar">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <button id="menu-toggle" class="menu-toggle"><i class="fas fa-bars"></i></button>
+        <h1><i class="fas fa-cog"></i> الإعدادات</h1>
+      </div>
+    </div>
+
+    <!-- إعدادات النظام العامة (للمدير فقط) -->
+    <div class="table-container" style="margin-bottom: 20px;" data-permission="users">
+      <div class="table-header">
+        <h3><i class="fas fa-building"></i> إعدادات النظام العامة</h3>
+      </div>
+      <div style="padding: 20px;">
+        <form id="general-settings-form">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>اسم الشركة / المتجر</label>
+              <input type="text" id="setting-company-name" placeholder="اسم الشركة">
+            </div>
+            <div class="form-group">
+              <label>رقم الهاتف</label>
+              <input type="text" id="setting-company-phone" placeholder="05xxxxxxxx">
+            </div>
+            <div class="form-group">
+              <label>رمز العملة</label>
+              <input type="text" id="setting-currency" placeholder="ر.س" value="ر.س">
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label>العنوان</label>
+              <input type="text" id="setting-company-address" placeholder="المدينة، الحي، الشارع">
+            </div>
+            <div class="form-group">
+              <label>الحد الأدنى الافتراضي للمخزون</label>
+              <input type="number" id="setting-default-min" min="0" placeholder="10" value="10">
+              <span class="input-hint">يُستخدم كقيمة مبدئية عند إضافة منتج جديد</span>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> حفظ إعدادات النظام
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- الحساب الشخصي -->
+    <div class="table-container" style="margin-bottom: 20px;">
+      <div class="table-header">
+        <h3><i class="fas fa-user-circle"></i> الحساب الشخصي</h3>
+      </div>
+      <div style="padding: 20px;">
+        <form id="profile-form">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>الاسم</label>
+              <input type="text" id="profile-name" placeholder="اسمك الكامل">
+            </div>
+            <div class="form-group">
+              <label>البريد الإلكتروني</label>
+              <input type="email" id="profile-email" readonly>
+              <span class="input-hint">لا يمكن تغيير البريد الإلكتروني من هنا</span>
+            </div>
+            <div class="form-group">
+              <label>الدور</label>
+              <input type="text" id="profile-role" readonly>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> حفظ التغييرات
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- تغيير كلمة المرور -->
+    <div class="table-container">
+      <div class="table-header">
+        <h3><i class="fas fa-lock"></i> تغيير كلمة المرور</h3>
+      </div>
+      <div style="padding: 20px;">
+        <form id="password-form">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>كلمة المرور الحالية *</label>
+              <input type="password" id="current-password" required placeholder="••••••••">
+            </div>
+            <div class="form-group">
+              <label>كلمة المرور الجديدة *</label>
+              <input type="password" id="new-password" required minlength="6" placeholder="6 أحرف على الأقل">
+            </div>
+            <div class="form-group">
+              <label>تأكيد كلمة المرور الجديدة *</label>
+              <input type="password" id="confirm-password" required placeholder="أعد كتابة كلمة المرور">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-key"></i> تحديث كلمة المرور
+          </button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import {
+      auth, db, doc, getDoc, setDoc, updateDoc, serverTimestamp
+    } from '../firebase/firebase-config.js';
+    import { validateRequired, isValidPhone } from '../utils/helpers.js';
+    import { confirmDialog } from '../components/modals.js';
+    import { updateSidebarUser } from '../assets/js/sidebar.js';
+
+    let currentUser = null;
+    let currentUserRole = null;
+
+    const SETTINGS_DOC = doc(db, 'settings', 'general');
+
+    // ------------------------------------------------------------
+    // تحميل إعدادات النظام العامة
+    // ------------------------------------------------------------
+    async function loadGeneralSettings() {
+      try {
+        const snap = await getDoc(SETTINGS_DOC);
+        if (snap.exists()) {
+          const data = snap.data();
+          document.getElementById('setting-company-name').value = data.companyName || '';
+          document.getElementById('setting-company-phone').value = data.companyPhone || '';
+          document.getElementById('setting-company-address').value = data.companyAddress || '';
+          document.getElementById('setting-currency').value = data.currency || 'ر.س';
+          document.getElementById('setting-default-min').value = data.defaultMinQuantity ?? 10;
+        }
+      } catch (error) {
+        console.error('خطأ في تحميل إعدادات النظام:', error);
+      }
+    }
+
+    document.getElementById('general-settings-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const phone = document.getElementById('setting-company-phone').value.trim();
+      if (phone && !isValidPhone(phone)) {
+        showToast('رقم الهاتف غير صالح', 'warning');
+        return;
+      }
+
+      try {
+        await setDoc(SETTINGS_DOC, {
+          companyName: document.getElementById('setting-company-name').value.trim(),
+          companyPhone: phone,
+          companyAddress: document.getElementById('setting-company-address').value.trim(),
+          currency: document.getElementById('setting-currency').value.trim() || 'ر.س',
+          defaultMinQuantity: parseInt(document.getElementById('setting-default-min').value) || 10,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+        showToast('تم حفظ إعدادات النظام بنجاح', 'success');
+      } catch (error) {
+        console.error('خطأ في حفظ إعدادات النظام:', error);
+        showToast('حدث خطأ أثناء الحفظ، تأكد أن لديك صلاحية المدير', 'error');
+      }
+    });
+
+    // ------------------------------------------------------------
+    // الحساب الشخصي
+    // ------------------------------------------------------------
+    async function loadProfile(user) {
+      currentUser = user;
+      document.getElementById('profile-email').value = user.email || '';
+
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          currentUserRole = data.role || 'Viewer';
+          document.getElementById('profile-name').value = data.name || '';
+          const roleLabels = { Admin: 'مدير النظام', Editor: 'محرر', Viewer: 'عارض' };
+          document.getElementById('profile-role').value = roleLabels[currentUserRole] || 'عارض';
+        }
+      } catch (error) {
+        console.error('خطأ في تحميل بيانات الحساب:', error);
+      }
+    }
+
+    document.getElementById('profile-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const { valid } = validateRequired({ 'الاسم': document.getElementById('profile-name').value });
+      if (!valid) { showToast('يرجى إدخال الاسم', 'warning'); return; }
+
+      try {
+        await updateDoc(doc(db, 'users', currentUser.uid), {
+          name: document.getElementById('profile-name').value.trim(),
+          updatedAt: serverTimestamp()
+        });
+        updateSidebarUser({
+          name: document.getElementById('profile-name').value.trim(),
+          email: currentUser.email,
+          role: currentUserRole
+        });
+        showToast('تم تحديث بيانات الحساب بنجاح', 'success');
+      } catch (error) {
+        console.error('خطأ في تحديث الحساب:', error);
+        showToast('حدث خطأ أثناء الحفظ', 'error');
+      }
+    });
+
+    // ------------------------------------------------------------
+    // تغيير كلمة المرور
+    // ------------------------------------------------------------
+    document.getElementById('password-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const currentPassword = document.getElementById('current-password').value;
+      const newPassword = document.getElementById('new-password').value;
+      const confirmPassword = document.getElementById('confirm-password').value;
+
+      if (newPassword !== confirmPassword) {
+        showToast('كلمة المرور الجديدة غير متطابقة مع التأكيد', 'warning');
+        return;
+      }
+
+      const ok = await confirmDialog('هل أنت متأكد من تغيير كلمة المرور؟', { danger: false, confirmText: 'تحديث' });
+      if (!ok) return;
+
+      try {
+        const { EmailAuthProvider, reauthenticateWithCredential, updatePassword } =
+          await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+
+        const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+        await reauthenticateWithCredential(currentUser, credential);
+        await updatePassword(currentUser, newPassword);
+
+        showToast('تم تحديث كلمة المرور بنجاح', 'success');
+        document.getElementById('password-form').reset();
+      } catch (error) {
+        console.error('خطأ في تحديث كلمة المرور:', error);
+        const errorMessages = {
+          'auth/wrong-password': 'كلمة المرور الحالية غير صحيحة',
+          'auth/weak-password': 'كلمة المرور الجديدة ضعيفة (يجب أن تكون 6 أحرف على الأقل)',
+          'auth/requires-recent-login': 'يرجى تسجيل الخروج والدخول مرة أخرى قبل تغيير كلمة المرور'
+        };
+        showToast(errorMessages[error.code] || 'حدث خطأ أثناء تحديث كلمة المرور', 'error');
+      }
+    });
+
+    // ------------------------------------------------------------
+    // تهيئة الصفحة
+    // ------------------------------------------------------------
+    import { initApp, showToast } from '../assets/js/app-init.js';
+    await initApp();
+    await loadGeneralSettings();
+    if (auth.currentUser) {
+      await loadProfile(auth.currentUser);
+    }
+  </script>
+</body>
+</html>

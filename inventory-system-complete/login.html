@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تسجيل الدخول - نظام إدارة المخزون</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-card">
+      <div style="margin-bottom: 20px;">
+        <i class="fas fa-warehouse" style="font-size: 40px; color: var(--primary-color);"></i>
+      </div>
+      <h1>نظام إدارة المخزون</h1>
+      <p>سجل دخولك للوصول إلى لوحة التحكم</p>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label>البريد الإلكتروني</label>
+          <input type="email" id="email" placeholder="أدخل بريدك الإلكتروني" required>
+        </div>
+        <div class="form-group">
+          <label>كلمة المرور</label>
+          <input type="password" id="password" placeholder="أدخل كلمة المرور" required>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-sign-in-alt"></i>
+          تسجيل الدخول
+        </button>
+        <p class="login-error" id="login-error">
+          بريد إلكتروني أو كلمة مرور غير صحيحة
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth, signInWithEmailAndPassword } from './firebase/firebase-config.js';
+
+    const loginForm = document.getElementById('login-form');
+    const loginError = document.getElementById('login-error');
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      loginError.style.display = 'none';
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        // التحقق من وجود المستخدم في قاعدة البيانات
+        window.location.href = '/dashboard.html';
+      } catch (error) {
+        loginError.textContent = getAuthError(error.code);
+        loginError.style.display = 'block';
+      }
+    });
+
+    function getAuthError(code) {
+      switch (code) {
+        case 'auth/user-not-found':
+          return 'هذا البريد الإلكتروني غير مسجل في النظام';
+        case 'auth/wrong-password':
+          return 'كلمة المرور غير صحيحة';
+        case 'auth/invalid-email':
+          return 'البريد الإلكتروني غير صالح';
+        case 'auth/too-many-requests':
+          return 'تم تجاوز عدد محاولات تسجيل الدخول، يرجى المحاولة لاحقاً';
+        case 'auth/network-request-failed':
+          return 'فشل الاتصال بالخادم، تأكد من اتصالك بالإنترنت';
+        default:
+          return 'حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى';
+      }
+    }
+  </script>
+</body>
+</html>

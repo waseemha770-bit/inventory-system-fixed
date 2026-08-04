@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>المرتجعات - نظام إدارة المخزون</title>
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <div id="connection-status" class="connection-status"></div>
+
+  <!-- القائمة الجانبية -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <h2>نظام إدارة المخزون</h2>
+      <p>Enterprise Inventory System</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="../dashboard.html"><i class="fas fa-chart-line"></i><span>لوحة التحكم</span></a>
+      <a href="products.html"><i class="fas fa-boxes-stacked"></i><span>المخزون الحالي</span></a>
+      <a href="movements.html"><i class="fas fa-exchange-alt"></i><span>حركات المخزون</span></a>
+      <a href="contacts.html"><i class="fas fa-address-book"></i><span>الموردين والعملاء</span></a>
+      <a href="returns.html" class="active"><i class="fas fa-undo-alt"></i><span>المرتجعات</span></a>
+      <a href="accounts.html"><i class="fas fa-file-invoice-dollar"></i><span>الآجل والديون</span></a>
+      <a href="reports.html"><i class="fas fa-chart-bar"></i><span>التقارير</span></a>
+      <a href="users.html" data-permission="users"><i class="fas fa-users-cog"></i><span>إدارة المستخدمين</span></a>
+      <a href="settings.html"><i class="fas fa-cog"></i><span>الإعدادات</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar" id="user-avatar">A</div>
+        <div class="user-details">
+          <div class="name" id="user-name">جاري التحميل...</div>
+          <div class="role" id="user-role">مستخدم</div>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="handleLogout()">
+        <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+      </button>
+    </div>
+  </aside>
+
+  <!-- المحتوى الرئيسي -->
+  <main class="main-content">
+    <div class="topbar">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <button id="menu-toggle" class="menu-toggle"><i class="fas fa-bars"></i></button>
+        <h1><i class="fas fa-undo-alt"></i> المرتجعات</h1>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-outline btn-sm" onclick="exportTableToCSV('returns-table', 'المرتجعات')">
+          <i class="fas fa-file-export"></i> تصدير
+        </button>
+        <button class="btn btn-primary btn-sm" id="add-return" data-permission="add">
+          <i class="fas fa-plus"></i> مرتجع جديد
+        </button>
+      </div>
+    </div>
+
+    <!-- البحث والفلترة -->
+    <div class="table-container" style="margin-bottom: 20px; padding: 16px 20px;">
+      <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <input type="text" id="search-return" placeholder="البحث برقم المرتجع أو المنتج..."
+               style="height: 40px; padding: 0 12px; border: 1px solid var(--border-color); border-radius: var(--radius); font-family: 'Tajawal'; font-size: 13px; width: 250px;">
+        <select id="filter-return-type" style="height: 40px; padding: 0 12px; border: 1px solid var(--border-color); border-radius: var(--radius); font-family: 'Tajawal'; font-size: 13px;">
+          <option value="">كل الأنواع</option>
+          <option value="مرتجع عميل">مرتجع عميل</option>
+          <option value="مرتجع مورد">مرتجع مورد</option>
+        </select>
+        <select id="filter-return-status" style="height: 40px; padding: 0 12px; border: 1px solid var(--border-color); border-radius: var(--radius); font-family: 'Tajawal'; font-size: 13px;">
+          <option value="">كل الحالات</option>
+          <option value="معالج">معالج</option>
+          <option value="قيد المعالجة">قيد المعالجة</option>
+          <option value="مرفوض">مرفوض</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- جدول المرتجعات -->
+    <div class="table-container">
+      <div style="overflow-x: auto;">
+        <table class="data-table" id="returns-table">
+          <thead>
+            <tr>
+              <th>رقم المرتجع</th>
+              <th>تاريخ المرتجع</th>
+              <th>نوع المرتجع</th>
+              <th>كود المنتج</th>
+              <th>اسم المنتج</th>
+              <th>الكمية المرتجعة</th>
+              <th>سبب المرتجع</th>
+              <th>العميل/المورد</th>
+              <th>رقم الفاتورة الأصلية</th>
+              <th>قيمة المرتجع</th>
+              <th>حالة المعالجة</th>
+              <th>ملاحظات</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="returns-body">
+            <tr>
+              <td colspan="13" style="text-align: center; padding: 30px;">
+                <div class="loading"><div class="spinner"></div></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- نافذة إضافة/تعديل مرتجع -->
+  <div class="modal-overlay" id="return-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="return-modal-title">إضافة مرتجع جديد</h3>
+        <button class="modal-close" onclick="closeReturnModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="return-form">
+          <input type="hidden" id="return-doc-id">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>رقم المرتجع *</label>
+              <input type="text" id="return-id" readonly placeholder="يتم التوليد تلقائياً">
+              <span class="input-hint">يتم إنشاؤه تلقائياً</span>
+            </div>
+            <div class="form-group">
+              <label>تاريخ المرتجع *</label>
+              <input type="date" id="return-date" required>
+            </div>
+            <div class="form-group">
+              <label>نوع المرتجع *</label>
+              <select id="return-type" required>
+                <option value="مرتجع عميل">مرتجع عميل</option>
+                <option value="مرتجع مورد">مرتجع مورد</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>كود المنتج *</label>
+              <input type="text" id="return-product-code" required placeholder="أدخل كود المنتج"
+                     onchange="onReturnProductCodeChange()">
+            </div>
+            <div class="form-group">
+              <label>اسم المنتج *</label>
+              <input type="text" id="return-product-name" required readonly placeholder="يتم تعبئته تلقائياً">
+            </div>
+            <div class="form-group">
+              <label>الكمية المرتجعة *</label>
+              <input type="number" id="return-quantity" required min="1" placeholder="0"
+                     onchange="calculateReturnTotal()">
+            </div>
+            <div class="form-group">
+              <label>سبب المرتجع *</label>
+              <select id="return-reason" required>
+                <option value="عيب في المنتج">عيب في المنتج</option>
+                <option value="خطأ في الطلب">خطأ في الطلب</option>
+                <option value="تلف أثناء النقل">تلف أثناء النقل</option>
+                <option value="غير مطابق للمواصفات">غير مطابق للمواصفات</option>
+                <option value="انتهاء الصلاحية">انتهاء الصلاحية</option>
+                <option value="أخرى">أخرى</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>العميل / المورد *</label>
+              <input type="text" id="return-contact" required placeholder="اسم العميل أو المورد" list="return-contacts-list">
+              <datalist id="return-contacts-list"></datalist>
+            </div>
+            <div class="form-group">
+              <label>رقم الفاتورة الأصلية</label>
+              <input type="text" id="return-invoice" placeholder="رقم الفاتورة الأصلية">
+            </div>
+            <div class="form-group">
+              <label>قيمة المرتجع</label>
+              <input type="number" id="return-value" min="0" step="0.01" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label>حالة المعالجة *</label>
+              <select id="return-status" required>
+                <option value="قيد المعالجة">قيد المعالجة</option>
+                <option value="معالج">معالج</option>
+                <option value="مرفوض">مرفوض</option>
+              </select>
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label>ملاحظات</label>
+              <textarea id="return-notes" rows="2" placeholder="ملاحظات إضافية"></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="saveReturn()">
+          <i class="fas fa-save"></i> حفظ المرتجع
+        </button>
+        <button class="btn btn-outline" onclick="closeReturnModal()">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { db, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp } from '../firebase/firebase-config.js';
+
+    let allReturns = [];
+    let allProducts = [];
+    let editingId = null;
+
+    // تحميل البيانات
+    async function loadReturns() {
+      try {
+        const [returnsSnap, productsSnap] = await Promise.all([
+          getDocs(query(collection(db, 'returns'), orderBy('returnDate', 'desc'))),
+          getDocs(collection(db, 'products'))
+        ]);
+        allReturns = returnsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        allProducts = productsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderReturns(allReturns);
+      } catch (error) {
+        console.error('خطأ في تحميل المرتجعات:', error);
+      }
+    }
+
+    // عرض المرتجعات
+    function renderReturns(returns) {
+      const tbody = document.getElementById('returns-body');
+      if (returns.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="13" style="text-align: center; color: var(--text-light);">لا توجد مرتجعات</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = returns.map(r => {
+        const statusBadge = r.status === 'معالج' ? 'badge-success' : r.status === 'مرفوض' ? 'badge-danger' : 'badge-warning';
+        return `
+          <tr>
+            <td><strong>${r.returnId || '-'}</strong></td>
+            <td>${r.returnDate || '-'}</td>
+            <td><span class="badge badge-info">${r.type || '-'}</span></td>
+            <td>${r.productCode || '-'}</td>
+            <td>${r.productName || '-'}</td>
+            <td>${r.quantity || 0}</td>
+            <td>${r.reason || '-'}</td>
+            <td>${r.contact || '-'}</td>
+            <td>${r.originalInvoice || '-'}</td>
+            <td><strong>${r.returnValue ? parseFloat(r.returnValue).toFixed(2) : '0.00'}</strong></td>
+            <td><span class="badge ${statusBadge}">${r.status || '-'}</span></td>
+            <td>${r.notes || '-'}</td>
+            <td>
+              <div class="actions-cell">
+                <button class="btn btn-outline btn-sm" data-permission="edit" onclick="editReturn('${r.id}')">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" data-permission="delete" onclick="deleteReturn('${r.id}')">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // عند تغيير كود المنتج
+    window.onReturnProductCodeChange = function() {
+      const code = document.getElementById('return-product-code').value;
+      const product = allProducts.find(p => p.code === code);
+      if (product) {
+        document.getElementById('return-product-name').value = product.name || '';
+      }
+    };
+
+    // حساب قيمة المرتجع
+    window.calculateReturnTotal = function() {
+      const qty = parseFloat(document.getElementById('return-quantity').value) || 0;
+      const code = document.getElementById('return-product-code').value;
+      const product = allProducts.find(p => p.code === code);
+      if (product) {
+        document.getElementById('return-value').value = (qty * (product.salePrice || product.costPrice || 0)).toFixed(2);
+      }
+    };
+
+    // حفظ المرتجع
+    window.saveReturn = async function() {
+      const returnData = {
+        returnId: document.getElementById('return-id').value,
+        returnDate: document.getElementById('return-date').value,
+        type: document.getElementById('return-type').value,
+        productCode: document.getElementById('return-product-code').value,
+        productName: document.getElementById('return-product-name').value,
+        quantity: parseInt(document.getElementById('return-quantity').value) || 0,
+        reason: document.getElementById('return-reason').value,
+        contact: document.getElementById('return-contact').value.trim(),
+        originalInvoice: document.getElementById('return-invoice').value.trim(),
+        returnValue: parseFloat(document.getElementById('return-value').value) || 0,
+        status: document.getElementById('return-status').value,
+        notes: document.getElementById('return-notes').value.trim(),
+        updatedAt: serverTimestamp()
+      };
+
+      try {
+        if (editingId) {
+          await updateDoc(doc(db, 'returns', editingId), returnData);
+          showToast('تم تحديث المرتجع بنجاح', 'success');
+        } else {
+          await setDoc(doc(db, 'returns', returnData.returnId), { ...returnData, createdAt: serverTimestamp() });
+          showToast('تم إضافة المرتجع بنجاح', 'success');
+        }
+
+        // تحديث رصيد المنتج (إرجاع الكمية للمخزون)
+        if (returnData.status === 'معالج') {
+          await updateProductStock(returnData);
+        }
+
+        closeReturnModal();
+        await loadReturns();
+      } catch (error) {
+        console.error('خطأ في حفظ المرتجع:', error);
+        showToast('حدث خطأ أثناء الحفظ', 'error');
+      }
+    };
+
+    // تحديث رصيد المنتج عند معالجة المرتجع
+    async function updateProductStock(returnData) {
+      const product = allProducts.find(p => p.code === returnData.productCode);
+      if (!product) return;
+
+      let newQty = product.currentQuantity || 0;
+      if (returnData.type === 'مرتجع عميل') {
+        newQty += returnData.quantity; // إرجاع للمخزون
+      } else {
+        newQty -= returnData.quantity; // سحب من المخزون
+      }
+
+      await updateDoc(doc(db, 'products', product.id), {
+        currentQuantity: newQty,
+        lastUpdated: returnData.returnDate,
+        updatedAt: serverTimestamp()
+      });
+    }
+
+    // تعديل مرتجع
+    window.editReturn = async function(id) {
+      const returnItem = allReturns.find(r => r.id === id);
+      if (!returnItem) return;
+
+      editingId = id;
+      document.getElementById('return-modal-title').textContent = 'تعديل المرتجع';
+      document.getElementById('return-doc-id').value = id;
+      document.getElementById('return-id').value = returnItem.returnId || '';
+      document.getElementById('return-date').value = returnItem.returnDate || '';
+      document.getElementById('return-type').value = returnItem.type || 'مرتجع عميل';
+      document.getElementById('return-product-code').value = returnItem.productCode || '';
+      document.getElementById('return-product-name').value = returnItem.productName || '';
+      document.getElementById('return-quantity').value = returnItem.quantity || 0;
+      document.getElementById('return-reason').value = returnItem.reason || 'عيب في المنتج';
+      document.getElementById('return-contact').value = returnItem.contact || '';
+      document.getElementById('return-invoice').value = returnItem.originalInvoice || '';
+      document.getElementById('return-value').value = returnItem.returnValue || 0;
+      document.getElementById('return-status').value = returnItem.status || 'قيد المعالجة';
+      document.getElementById('return-notes').value = returnItem.notes || '';
+      document.getElementById('return-modal').classList.add('active');
+    };
+
+    // حذف مرتجع
+    window.deleteReturn = async function(id) {
+      if (!confirm('هل أنت متأكد من حذف هذا المرتجع؟')) return;
+      try {
+        await deleteDoc(doc(db, 'returns', id));
+        showToast('تم الحذف بنجاح', 'success');
+        await loadReturns();
+      } catch (error) {
+        console.error('خطأ في الحذف:', error);
+        showToast('حدث خطأ أثناء الحذف', 'error');
+      }
+    };
+
+    // إغلاق النافذة
+    window.closeReturnModal = function() {
+      document.getElementById('return-modal').classList.remove('active');
+      document.getElementById('return-form').reset();
+      editingId = null;
+      document.getElementById('return-modal-title').textContent = 'إضافة مرتجع جديد';
+    };
+
+    // البحث والفلترة
+    function filterReturns() {
+      const search = document.getElementById('search-return').value.toLowerCase();
+      const type = document.getElementById('filter-return-type').value;
+      const status = document.getElementById('filter-return-status').value;
+
+      let filtered = allReturns.filter(r => {
+        const matchSearch = !search ||
+          (r.returnId || '').toLowerCase().includes(search) ||
+          (r.productName || '').toLowerCase().includes(search);
+        const matchType = !type || r.type === type;
+        const matchStatus = !status || r.status === status;
+        return matchSearch && matchType && matchStatus;
+      });
+
+      renderReturns(filtered);
+    }
+
+    document.getElementById('search-return')?.addEventListener('input', filterReturns);
+    document.getElementById('filter-return-type')?.addEventListener('change', filterReturns);
+    document.getElementById('filter-return-status')?.addEventListener('change', filterReturns);
+
+    // تهيئة التطبيق
+    import { initApp, showToast } from '../assets/js/app-init.js';
+    await initApp();
+    await loadReturns();
+
+    // زر إضافة مرتجع
+    document.getElementById('add-return')?.addEventListener('click', () => {
+      const code = 'RET-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+      document.getElementById('return-id').value = code;
+      document.getElementById('return-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('return-modal').classList.add('active');
+    });
+  </script>
+</body>
+</html>

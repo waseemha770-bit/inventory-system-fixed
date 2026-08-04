@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>المخزون الحالي - نظام إدارة المخزون</title>
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <div id="connection-status" class="connection-status"></div>
+
+  <!-- القائمة الجانبية -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <h2>نظام إدارة المخزون</h2>
+      <p>Enterprise Inventory System</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="../dashboard.html"><i class="fas fa-chart-line"></i><span>لوحة التحكم</span></a>
+      <a href="products.html" class="active"><i class="fas fa-boxes-stacked"></i><span>المخزون الحالي</span></a>
+      <a href="movements.html"><i class="fas fa-exchange-alt"></i><span>حركات المخزون</span></a>
+      <a href="contacts.html"><i class="fas fa-address-book"></i><span>الموردين والعملاء</span></a>
+      <a href="returns.html"><i class="fas fa-undo-alt"></i><span>المرتجعات</span></a>
+      <a href="accounts.html"><i class="fas fa-file-invoice-dollar"></i><span>الآجل والديون</span></a>
+      <a href="reports.html"><i class="fas fa-chart-bar"></i><span>التقارير</span></a>
+      <a href="users.html" data-permission="users"><i class="fas fa-users-cog"></i><span>إدارة المستخدمين</span></a>
+      <a href="settings.html"><i class="fas fa-cog"></i><span>الإعدادات</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar" id="user-avatar">A</div>
+        <div class="user-details">
+          <div class="name" id="user-name">جاري التحميل...</div>
+          <div class="role" id="user-role">مستخدم</div>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="handleLogout()">
+        <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+      </button>
+    </div>
+  </aside>
+
+  <!-- المحتوى الرئيسي -->
+  <main class="main-content">
+    <div class="topbar">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <button id="menu-toggle" class="menu-toggle"><i class="fas fa-bars"></i></button>
+        <h1><i class="fas fa-boxes-stacked"></i> المخزون الحالي</h1>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-outline btn-sm" onclick="exportTableToCSV('products-table', 'المخزون_الحالي')">
+          <i class="fas fa-file-export"></i> تصدير
+        </button>
+        <button class="btn btn-primary btn-sm" id="add-product" data-permission="add">
+          <i class="fas fa-plus"></i> إضافة منتج
+        </button>
+      </div>
+    </div>
+
+    <!-- البحث والفلترة -->
+    <div class="table-container" style="margin-bottom: 20px; padding: 16px 20px;">
+      <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <input type="text" id="search-product" placeholder="البحث بالاسم أو الكود..."
+               style="height: 40px; padding: 0 12px; border: 1px solid var(--border-color); border-radius: var(--radius); font-family: 'Tajawal'; font-size: 13px; width: 250px;">
+        <select id="filter-category" style="height: 40px; padding: 0 12px; border: 1px solid var(--border-color); border-radius: var(--radius); font-family: 'Tajawal'; font-size: 13px;">
+          <option value="">كل الفئات</option>
+        </select>
+        <select id="filter-status" style="height: 40px; padding: 0 12px; border: 1px solid var(--border-color); border-radius: var(--radius); font-family: 'Tajawal'; font-size: 13px;">
+          <option value="">كل الحالات</option>
+          <option value="متوفر">متوفر</option>
+          <option value="منخفض">منخفض المخزون</option>
+          <option value="نافذ">نافذ المخزون</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- جدول المخزون -->
+    <div class="table-container">
+      <div style="overflow-x: auto;">
+        <table class="data-table" id="products-table">
+          <thead>
+            <tr>
+              <th>كود المنتج</th>
+              <th>اسم المنتج</th>
+              <th>الفئة</th>
+              <th>الوحدة</th>
+              <th>الكمية الحالية</th>
+              <th>الحد الأدنى</th>
+              <th>الحد الأقصى</th>
+              <th>سعر الشراء</th>
+              <th>سعر البيع</th>
+              <th>الموقع</th>
+              <th>آخر تحديث</th>
+              <th>الحالة</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="products-body">
+            <tr>
+              <td colspan="13" style="text-align: center; padding: 30px;">
+                <div class="loading"><div class="spinner"></div></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- نافذة إضافة/تعديل منتج -->
+  <div class="modal-overlay" id="product-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="product-modal-title">إضافة منتج جديد</h3>
+        <button class="modal-close" onclick="closeProductModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="product-form">
+          <input type="hidden" id="product-doc-id">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>كود المنتج *</label>
+              <input type="text" id="product-code" readonly placeholder="يتم التوليد تلقائياً">
+              <span class="input-hint">يتم إنشاؤه تلقائياً</span>
+            </div>
+            <div class="form-group">
+              <label>اسم المنتج *</label>
+              <input type="text" id="product-name" required placeholder="اسم المنتج">
+            </div>
+            <div class="form-group">
+              <label>الفئة *</label>
+              <input type="text" id="product-category" required placeholder="مثال: إلكترونيات" list="categories-list">
+              <datalist id="categories-list"></datalist>
+            </div>
+            <div class="form-group">
+              <label>الوحدة *</label>
+              <select id="product-unit" required>
+                <option value="قطعة">قطعة</option>
+                <option value="كرتون">كرتون</option>
+                <option value="علبة">علبة</option>
+                <option value="كيلو">كيلو</option>
+                <option value="لتر">لتر</option>
+                <option value="متر">متر</option>
+                <option value="رول">رول</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>الكمية الحالية *</label>
+              <input type="number" id="product-quantity" required min="0" placeholder="0" value="0">
+            </div>
+            <div class="form-group">
+              <label>الحد الأدنى</label>
+              <input type="number" id="product-min" min="0" placeholder="0" value="10">
+            </div>
+            <div class="form-group">
+              <label>الحد الأقصى</label>
+              <input type="number" id="product-max" min="0" placeholder="100" value="100">
+            </div>
+            <div class="form-group">
+              <label>سعر الشراء</label>
+              <input type="number" id="product-cost" min="0" step="0.01" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label>سعر البيع</label>
+              <input type="number" id="product-price" min="0" step="0.01" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label>الموقع / التخزين</label>
+              <input type="text" id="product-location" placeholder="مثال: المستودع أ">
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label>صورة المنتج (اختياري)</label>
+              <input type="file" id="product-image" accept="image/*" onchange="handleProductImage(this)">
+              <span class="input-hint">سيتم ضغط الصورة وتحويلها لـ Base64 لتخزينها محلياً</span>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="saveProduct()">
+          <i class="fas fa-save"></i> حفظ المنتج
+        </button>
+        <button class="btn btn-outline" onclick="closeProductModal()">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { db, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp } from '../firebase/firebase-config.js';
+
+    let allProducts = [];
+    let editingId = null;
+
+    // تحميل المنتجات
+    async function loadProducts() {
+      try {
+        const snapshot = await getDocs(query(collection(db, 'products'), orderBy('createdAt', 'desc')));
+        allProducts = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderProducts(allProducts);
+        updateCategoriesList();
+      } catch (error) {
+        console.error('خطأ في تحميل المنتجات:', error);
+        document.getElementById('products-body').innerHTML =
+          '<tr><td colspan="13" style="text-align: center; color: var(--danger-color);">خطأ في تحميل البيانات</td></tr>';
+      }
+    }
+
+    // عرض المنتجات
+    function renderProducts(products) {
+      const tbody = document.getElementById('products-body');
+      if (products.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="13" style="text-align: center; color: var(--text-light);">لا توجد منتجات في المخزون</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = products.map(p => {
+        const status = getStockStatus(p.currentQuantity || 0, p.minQuantity || 10);
+        const statusBadge = status === 'متوفر' ? 'badge-success' : status === 'منخفض' ? 'badge-warning' : 'badge-danger';
+        return `
+          <tr>
+            <td><strong>${p.code || '-'}</strong></td>
+            <td>${p.name || '-'}</td>
+            <td>${p.category || '-'}</td>
+            <td>${p.unit || '-'}</td>
+            <td><strong>${p.currentQuantity || 0}</strong></td>
+            <td>${p.minQuantity || 0}</td>
+            <td>${p.maxQuantity || 0}</td>
+            <td>${p.costPrice ? parseFloat(p.costPrice).toFixed(2) : '0.00'}</td>
+            <td>${p.salePrice ? parseFloat(p.salePrice).toFixed(2) : '0.00'}</td>
+            <td>${p.location || '-'}</td>
+            <td>${p.lastUpdated || '-'}</td>
+            <td><span class="badge ${statusBadge}">${status}</span></td>
+            <td>
+              <div class="actions-cell">
+                <button class="btn btn-outline btn-sm" data-permission="edit" onclick="editProduct('${p.id}')">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" data-permission="delete" onclick="deleteProduct('${p.id}', '${p.name}')">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function getStockStatus(qty, min) {
+      if (qty === 0) return 'نافذ';
+      if (qty <= min) return 'منخفض';
+      return 'متوفر';
+    }
+
+    // تحديث قائمة الفئات
+    function updateCategoriesList() {
+      const categories = [...new Set(allProducts.map(p => p.category).filter(Boolean))];
+      const datalist = document.getElementById('categories-list');
+      const filterSelect = document.getElementById('filter-category');
+      datalist.innerHTML = categories.map(c => `<option value="${c}">`).join('');
+      filterSelect.innerHTML = '<option value="">كل الفئات</option>' +
+        categories.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    // حفظ منتج
+    window.saveProduct = async function() {
+      const name = document.getElementById('product-name').value.trim();
+      if (!name) { showToast('يرجى إدخال اسم المنتج', 'warning'); return; }
+
+      const productData = {
+        code: document.getElementById('product-code').value,
+        name: name,
+        category: document.getElementById('product-category').value.trim(),
+        unit: document.getElementById('product-unit').value,
+        currentQuantity: parseInt(document.getElementById('product-quantity').value) || 0,
+        minQuantity: parseInt(document.getElementById('product-min').value) || 10,
+        maxQuantity: parseInt(document.getElementById('product-max').value) || 100,
+        costPrice: parseFloat(document.getElementById('product-cost').value) || 0,
+        salePrice: parseFloat(document.getElementById('product-price').value) || 0,
+        location: document.getElementById('product-location').value.trim(),
+        lastUpdated: new Date().toISOString().split('T')[0],
+        updatedAt: serverTimestamp()
+      };
+
+      // معالجة الصورة
+      const imageFile = document.getElementById('product-image').files[0];
+      if (imageFile) {
+        try {
+          productData.image = await compressImage(imageFile);
+        } catch (err) {
+          console.warn('خطأ في ضغط الصورة:', err);
+        }
+      }
+
+      try {
+        if (editingId) {
+          await updateDoc(doc(db, 'products', editingId), productData);
+          showToast('تم تحديث المنتج بنجاح', 'success');
+        } else {
+          await setDoc(doc(db, 'products', productData.code), { ...productData, createdAt: serverTimestamp() });
+          showToast('تم إضافة المنتج بنجاح', 'success');
+        }
+        closeProductModal();
+        await loadProducts();
+      } catch (error) {
+        console.error('خطأ في حفظ المنتج:', error);
+        showToast('حدث خطأ أثناء الحفظ', 'error');
+      }
+    };
+
+    // ضغط الصورة
+    async function compressImage(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const maxSize = 300;
+            let w = img.width, h = img.height;
+            if (w > h) { if (w > maxSize) { h *= maxSize / w; w = maxSize; } }
+            else { if (h > maxSize) { w *= maxSize / h; h = maxSize; } }
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // تعديل منتج
+    window.editProduct = async function(id) {
+      const product = allProducts.find(p => p.id === id);
+      if (!product) return;
+
+      editingId = id;
+      document.getElementById('product-modal-title').textContent = 'تعديل المنتج';
+      document.getElementById('product-doc-id').value = id;
+      document.getElementById('product-code').value = product.code || '';
+      document.getElementById('product-name').value = product.name || '';
+      document.getElementById('product-category').value = product.category || '';
+      document.getElementById('product-unit').value = product.unit || 'قطعة';
+      document.getElementById('product-quantity').value = product.currentQuantity || 0;
+      document.getElementById('product-min').value = product.minQuantity || 10;
+      document.getElementById('product-max').value = product.maxQuantity || 100;
+      document.getElementById('product-cost').value = product.costPrice || 0;
+      document.getElementById('product-price').value = product.salePrice || 0;
+      document.getElementById('product-location').value = product.location || '';
+      document.getElementById('product-modal').classList.add('active');
+    };
+
+    // حذف منتج
+    window.deleteProduct = async function(id, name) {
+      if (!confirm(`هل أنت متأكد من حذف المنتج "${name}"؟`)) return;
+      try {
+        await deleteDoc(doc(db, 'products', id));
+        showToast('تم حذف المنتج بنجاح', 'success');
+        await loadProducts();
+      } catch (error) {
+        console.error('خطأ في الحذف:', error);
+        showToast('حدث خطأ أثناء الحذف', 'error');
+      }
+    };
+
+    // إغلاق النافذة
+    window.closeProductModal = function() {
+      document.getElementById('product-modal').classList.remove('active');
+      document.getElementById('product-form').reset();
+      editingId = null;
+      document.getElementById('product-modal-title').textContent = 'إضافة منتج جديد';
+    };
+
+    // معالجة صورة المنتج
+    window.handleProductImage = function(input) {
+      if (input.files[0]) {
+        compressImage(input.files[0]).then(data => {
+          showToast('تم ضغط الصورة بنجاح', 'success');
+        });
+      }
+    };
+
+    // البحث والفلترة
+    function filterProducts() {
+      const search = document.getElementById('search-product').value.toLowerCase();
+      const category = document.getElementById('filter-category').value;
+      const status = document.getElementById('filter-status').value;
+
+      let filtered = allProducts.filter(p => {
+        const matchSearch = !search || (p.name || '').toLowerCase().includes(search) || (p.code || '').toLowerCase().includes(search);
+        const matchCategory = !category || p.category === category;
+        const matchStatus = !status || getStockStatus(p.currentQuantity || 0, p.minQuantity || 10) === status;
+        return matchSearch && matchCategory && matchStatus;
+      });
+
+      renderProducts(filtered);
+    }
+
+    document.getElementById('search-product')?.addEventListener('input', filterProducts);
+    document.getElementById('filter-category')?.addEventListener('change', filterProducts);
+    document.getElementById('filter-status')?.addEventListener('change', filterProducts);
+
+    // تهيئة التطبيق
+    import { initApp, showToast } from '../assets/js/app-init.js';
+    await initApp();
+    await loadProducts();
+
+    // زر إضافة منتج
+    document.getElementById('add-product')?.addEventListener('click', () => {
+      const code = 'PRD-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+      document.getElementById('product-code').value = code;
+      document.getElementById('product-modal').classList.add('active');
+    });
+  </script>
+</body>
+</html>
